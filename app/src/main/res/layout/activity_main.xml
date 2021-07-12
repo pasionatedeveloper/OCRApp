@@ -40,7 +40,6 @@
                     <EditText
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Click + button to add image"
                         android:autoLink="all"
                         android:padding="5dp"
                         android:textColor="@color/black"

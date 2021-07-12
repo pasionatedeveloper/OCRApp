@@ -2,6 +2,7 @@ package com.example.ocrappdipproject;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -55,6 +56,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
+        ActionBar actionBar = getSupportActionBar();
+        actionBar.setSubtitle("Click image button to add image");
 
         editText=findViewById(R.id.resultEditText);
         imageView=findViewById(R.id.imageView);
