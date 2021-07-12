@@ -1,6 +1,7 @@
 package com.example.ocrappdipproject;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -11,14 +12,24 @@ import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.Toast;
+
+import com.google.android.gms.vision.Frame;
+import com.google.android.gms.vision.text.TextBlock;
+import com.google.android.gms.vision.text.TextRecognizer;
+import com.theartofdev.edmodo.cropper.CropImage;
+import com.theartofdev.edmodo.cropper.CropImageView;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -27,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int STORAGE_PERMISSION_REQUEST=400;
     private static final int GALLERY_PERMISSION_REQUEST=600;
     private static final int IMAGE_PICK_CAMERA_CODE=800;
+    private static final int IMAGE_PICK_GALLERY_CODE=1000;
 
 
     EditText editText;
@@ -118,8 +130,82 @@ public class MainActivity extends AppCompatActivity {
 
     private void pickGallery(){
 
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_PICK);
+        intent.setType("image/*");
+        startActivityForResult(intent,IMAGE_PICK_GALLERY_CODE);
+
     }
 
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull  String[] permissions, @NonNull  int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+
+            case CAMERA_PERMISSION_REQUEST:
+                if (grantResults.length > 0) {
+                    boolean cameraAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                    boolean writeStorageAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+
+                    if (cameraAccepted && writeStorageAccepted) {
+                        pickCamera();
+                    } else {
+                        Toast.makeText(getApplicationContext(), "Permission Denied", Toast.LENGTH_LONG).show();
+                    }
+                }
+                break;
+            case STORAGE_PERMISSION_REQUEST:
+                break;
+
+
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable  Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            if (requestCode == IMAGE_PICK_CAMERA_CODE) {
+                //got image from camera and crop it
+                CropImage.activity(data.getData()).setGuidelines(CropImageView.Guidelines.ON).start(this);
+            }
+            if (requestCode == IMAGE_PICK_GALLERY_CODE) {
+                //get image from gallery and crop it
+                CropImage.activity(data.getData()).setGuidelines(CropImageView.Guidelines.ON).start(this);//enable guidlines
+
+            }
+        }
+        // getcroppedImage
+        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
+            CropImage.ActivityResult result = CropImage.getActivityResult(data);
+            if (resultCode == RESULT_OK) {
+                Uri resultUri = result.getUri();
+                imageView.setImageURI(resultUri);
+
+                BitmapDrawable drawable = (BitmapDrawable) imageView.getDrawable();
+                Bitmap bitmap = drawable.getBitmap();
+
+                TextRecognizer recognizer = new TextRecognizer.Builder(getApplicationContext()).build();
+                if (!recognizer.isOperational()) {
+                    Toast.makeText(getApplicationContext(), "Error", Toast.LENGTH_LONG).show();
+                } else {
+                    Frame frame = new Frame.Builder().setBitmap(bitmap).build();
+                    SparseArray<TextBlock> items = recognizer.detect(frame);
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < items.size(); i++) {
+                        TextBlock myItems = items.valueAt(i);
+                        sb.append(myItems.getValue());
+                        sb.append("\n");
+                    }
+                    editText.setText(sb.toString());
+                }
+            } else if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
+                Exception error = result.getError();
+                Toast.makeText(getApplicationContext(), "" + error, Toast.LENGTH_LONG).show();
+            }
+        }
+    }
 
     private void pickCamera() {
 
@@ -136,7 +222,6 @@ public class MainActivity extends AppCompatActivity {
 
 
     private boolean checkStoragePermissions(){
-
         boolean result = ContextCompat.checkSelfPermission(this,Manifest.permission.WRITE_EXTERNAL_STORAGE)==(PackageManager.PERMISSION_GRANTED);
         return result;
     }
